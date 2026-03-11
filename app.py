@@ -55,7 +55,7 @@ def generar_certificado(nombre_texto, dni_texto):
     # 3. UBICACIONES (Basadas en tus coordenadas)
     # 'mm' significa que el centro del texto estará en esa coordenada (mejor para centrar nombres)
     pos_nombre = (2351, 1575)
-    pos_dni = (4803, 1575)
+    pos_dni = (5203, 1575)
 
     # 4. Dibujar los textos
     # Color negro: (0, 0, 0). Si no se ve, prueba (255, 0, 0) para rojo de prueba.
@@ -116,3 +116,4 @@ else:
 
 st.divider()
 st.caption("Sistema de certificación automática - Generado con Streamlit")
+
