@@ -14,7 +14,7 @@ TAMANO_LETRA = 90
 
 X_QR = 400        # Posición derecha
 Y_QR = 600        # Posición abajo
-TAMANO_QR = 100
+TAMANO_QR = 20
 # ----------------------------------------------------------------
 
 st.set_page_config(page_title="Certificados", layout="centered")
@@ -78,4 +78,5 @@ if dni_input and df is not None:
         st.download_button("⬇️ DESCARGAR PDF", data=pdf, file_name=f"Certificado_{dni_input}.pdf")
     else:
         st.error("DNI no registrado.")
+
 
