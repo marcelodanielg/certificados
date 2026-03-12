@@ -27,14 +27,14 @@ def cargar_datos():
 LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
 
 # Coordenadas para Nombre y DNI (Mismo renglón)
-TXT_X = 2351   # Centro horizontal
-TXT_Y = 850    # Altura desde arriba (Primera cuarta parte)
+TXT_X = 60   # Centro horizontal
+TXT_Y = 216    # Altura desde arriba (Primera cuarta parte)
 TXT_SIZE = 95  # Tamaño de letra
 
 # Coordenadas para el Código QR
-QR_X = 4200    # Posición horizontal del QR
-QR_Y = 2800    # Posición vertical del QR (Cerca del borde inferior)
-QR_SIZE = 350  # Tamaño del cuadrado del QR
+QR_X = 800    # Posición horizontal del QR
+QR_Y = 600    # Posición vertical del QR (Cerca del borde inferior)
+QR_SIZE = 150  # Tamaño del cuadrado del QR
 # =========================================================
 
 df = cargar_datos()
@@ -102,3 +102,4 @@ if dni_input and df is not None:
         )
     else:
         st.error("DNI no encontrado.")
+
