@@ -27,7 +27,7 @@ def cargar_datos():
 LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
 
 # Coordenadas para Nombre y DNI (Mismo renglón)
-TXT_X = 160   # Centro horizontal
+TXT_X = 460   # Centro horizontal
 TXT_Y = 216    # Altura desde arriba (Primera cuarta parte)
 TXT_SIZE = 20  # Tamaño de letra
 
@@ -102,6 +102,7 @@ if dni_input and df is not None:
         )
     else:
         st.error("DNI no encontrado.")
+
 
 
 
