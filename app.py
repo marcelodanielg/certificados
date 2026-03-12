@@ -62,11 +62,11 @@ def generar_pdf_certificado(nombre, dni):
         c.setFont("Helvetica", 100)
 
     # Nombre (Centrado en X=2351, Y=1575)
-    c.drawCentredString(2351, 275, nombre.upper())
+    c.drawCentredString(2351, 1275, nombre.upper())
     
     # DNI
      # c.setFont("Helvetica", 100)
-    c.drawCentredString(4803, 275, f"DNI: {dni}")
+    c.drawCentredString(4803, 1275, f"DNI: {dni}")
 
     # 5. Dibujar Código QR en una esquina (ejemplo: abajo a la derecha)
     c.drawImage(ImageReader(qr_img), ancho - 500, 100, width=350, height=350)
@@ -130,6 +130,7 @@ with tab2:
 
 st.divider()
 st.caption("Sistema Seguro de Certificación - 2026")
+
 
 
 
