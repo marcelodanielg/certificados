@@ -7,7 +7,7 @@ from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
-# 1. CONFIGURACIÓN DE UBICACIÓN
+# --- 1. CONFIGURACIÓN DE DISEÑO (Ajusta aquí) ---
 X_TEXTO = 300
 Y_TEXTO = 240
 TAMANO_LETRA = 20
@@ -16,27 +16,39 @@ X_QR = 690
 Y_QR = 425
 TAMANO_QR = 100
 
-st.set_page_config(page_title="Certificados", layout="centered")
+# REEMPLAZA ESTO POR EL LINK DE TU APP EN STREAMLIT CLOUD
+URL_BASE = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/" 
+# ------------------------------------------------
 
-# Limpieza visual
-st.markdown("<style>#MainMenu, footer, header {visibility: hidden;}</style>", unsafe_allow_html=True)
+st.set_page_config(page_title="Sistema de Certificados", layout="centered")
+
+# CSS para eliminar TODA la publicidad y marcas de la plataforma
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    #stDecoration {display:none;}
+    [data-testid="stStatusWidget"] {visibility: hidden;}
+    .stDeployButton {display:none;}
+    .stApp { background-color: #ffffff; }
+    </style>
+    """, unsafe_allow_html=True)
 
 @st.cache_data
 def cargar_datos():
     if not os.path.exists("asistentes.xlsx"):
-        st.error("⚠️ Archivo 'asistentes.xlsx' no encontrado en GitHub.")
         return None
     try:
         return pd.read_excel("asistentes.xlsx", dtype={'DNI': str})
-    except Exception as e:
-        st.error(f"⚠️ Error al leer el Excel: {e}")
+    except:
         return None
 
 df = cargar_datos()
 
 def generar_pdf(nombre, dni):
     if not os.path.exists("plantilla.png"):
-        st.error("⚠️ Archivo 'plantilla.png' no encontrado en GitHub.")
+        st.error("Archivo plantilla.png no encontrado.")
         return None
         
     buffer = io.BytesIO()
@@ -50,12 +62,14 @@ def generar_pdf(nombre, dni):
     c.setFont("Helvetica-Bold", TAMANO_LETRA)
     c.drawCentredString(X_TEXTO, alto - Y_TEXTO, f"{nombre.upper()} - DNI: {dni}")
     
-    # Generar y pegar QR
-    # Reemplaza 'tu-app' por el nombre real de tu url si lo deseas
-    qr = qrcode.make(f"https://certificados.streamlit.app/?v={dni}")
+    # GENERAR QR DE VALIDACIÓN
+    # El QR enviará al usuario a la app con el parámetro ?v=DNI
+    enlace_validacion = f"{URL_BASE}?v={dni}"
+    qr = qrcode.make(enlace_validacion)
     qr_buf = io.BytesIO()
     qr.save(qr_buf, format='PNG')
     qr_buf.seek(0)
+    
     c.drawImage(ImageReader(qr_buf), X_QR, alto - (Y_QR + TAMANO_QR), width=TAMANO_QR, height=TAMANO_QR)
     
     c.showPage()
@@ -63,37 +77,51 @@ def generar_pdf(nombre, dni):
     buffer.seek(0)
     return buffer
 
-# --- INTERFAZ ---
-st.title("🎓 Portal de Certificados")
+# --- LÓGICA DE PANTALLAS ---
 
-# Validación QR
+# Detectar si alguien escaneó el QR (Parámetro 'v' en la URL)
 query = st.query_params
-if query.get("v"):
-    dni_v = query.get("v")
+if "v" in query:
+    dni_v = query["v"]
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
     if df is not None:
         doc = df[df['DNI'] == dni_v]
         if not doc.empty:
-            st.success(f"✅ DOCUMENTO VÁLIDO: {doc.iloc[0]['Nombre']}")
+            st.markdown(f"""
+                <div style="text-align: center; border: 2px solid #2e7d32; padding: 40px; border-radius: 10px;">
+                    <h2 style="color: #2e7d32;">✅ CERTIFICADO AUTÉNTICO</h2>
+                    <h1 style="color: #1a1a1a;">{doc.iloc[0]['Nombre']}</h1>
+                    <p style="color: #666;">Documento validado por el sistema oficial.</p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.error("El código escaneado no pertenece a un certificado válido.")
     st.stop()
 
-dni_input = st.text_input("Ingresa tu DNI:", placeholder="Sin puntos ni espacios")
+# Pantalla normal para el docente
+st.markdown("<h2 style='text-align: center;'>Portal de Certificados</h2>", unsafe_allow_html=True)
+st.write("---")
 
-if dni_input and df is not None:
-    # Limpiamos el input por si acaso
-    dni_limpio = dni_input.strip()
-    res = df[df['DNI'] == dni_limpio]
+if df is None:
+    st.error("Error al cargar la base de datos. Verifica el archivo asistentes.xlsx")
+else:
+    dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 12345678")
     
-    if not res.empty:
-        nombre_doc = res.iloc[0]['Nombre']
-        st.info(f"Certificado para: **{nombre_doc}**")
+    if dni_input:
+        dni_limpio = dni_input.strip()
+        res = df[df['DNI'] == dni_limpio]
         
-        pdf = generar_pdf(nombre_doc, dni_limpio)
-        if pdf:
-            st.download_button(
-                label="⬇️ DESCARGAR CERTIFICADO",
-                data=pdf,
-                file_name=f"Certificado_{dni_limpio}.pdf",
-                mime="application/pdf"
-            )
-    else:
-        st.error("DNI no registrado en la base de datos.")
+        if not res.empty:
+            nombre_doc = res.iloc[0]['Nombre']
+            st.info(f"Certificado para: {nombre_doc}")
+            
+            pdf = generar_pdf(nombre_doc, dni_limpio)
+            if pdf:
+                st.download_button(
+                    label="DESCARGAR CERTIFICADO (PDF)",
+                    data=pdf,
+                    file_name=f"Certificado_{dni_limpio}.pdf",
+                    mime="application/pdf"
+                )
+        else:
+            st.error("DNI no registrado.")
