@@ -8,13 +8,13 @@ from reportlab.lib.utils import ImageReader
 
 # 1. CONFIGURACIÓN DE UBICACIÓN (Cambia estos números a tu gusto)
 # ----------------------------------------------------------------
-X_TEXTO = 250     # Centro de la hoja (Horizontal)
+X_TEXTO = 300     # Centro de la hoja (Horizontal)
 Y_TEXTO =  240     # Altura desde arriba (Vertical)
 TAMANO_LETRA = 20
 
 X_QR = 690        # Posición derecha
 Y_QR = 425        # Posición abajo
-TAMANO_QR = 80
+TAMANO_QR = 100
 # ----------------------------------------------------------------
 
 st.set_page_config(page_title="Certificados", layout="centered")
@@ -78,6 +78,7 @@ if dni_input and df is not None:
         st.download_button("⬇️ DESCARGAR PDF", data=pdf, file_name=f"Certificado_{dni_input}.pdf")
     else:
         st.error("DNI no registrado.")
+
 
 
 
