@@ -7,7 +7,7 @@ from reportlab.lib.utils import ImageReader
 import io
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Portal de Certificados", page_icon="🎓")
+st.set_page_config(page_title="Invitaciòn al Encuentro Formativo Secundarias Innovadoras", page_icon="🎓")
 
 @st.cache_data
 def cargar_datos():
@@ -34,7 +34,7 @@ TXT_SIZE = 20  # Tamaño de letra
 # Coordenadas para el Código QR
 QR_X = 800    # Posición horizontal del QR
 QR_Y = 600    # Posición vertical del QR (Cerca del borde inferior)
-QR_SIZE = 150  # Tamaño del cuadrado del QR
+QR_SIZE = 120  # Tamaño del cuadrado del QR
 # =========================================================
 
 df = cargar_datos()
@@ -102,6 +102,7 @@ if dni_input and df is not None:
         )
     else:
         st.error("DNI no encontrado.")
+
 
 
 
