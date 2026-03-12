@@ -3,88 +3,84 @@ import pandas as pd
 import qrcode
 import io
 import os
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
-# --- LIMPIEZA TOTAL DE INTERFAZ ---
-st.set_page_config(page_title="Sistema de Certificación", page_icon="🎓", layout="centered")
+# --- ESTÉTICA SOBRIA ---
+st.set_page_config(page_title="Gestor Institucional", page_icon="🎓", layout="wide")
 
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    #stDecoration {display:none;}
-    .stDeployButton {display:none;}
-    [data-testid="stStatusWidget"] {visibility: hidden;}
     .stApp { background-color: #ffffff; }
-    .stButton>button {
-        background-color: #000000;
-        color: #ffffff;
-        border-radius: 2px;
-        border: none;
-        padding: 0.6rem 2rem;
-        width: 100%;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- VERIFICACIÓN DE ARCHIVOS ---
-def verificar_archivos():
-    errores = []
-    if not os.path.exists("asistentes.xlsx"): errores.append("Falta el archivo 'asistentes.xlsx'")
-    if not os.path.exists("plantilla.png"): errores.append("Falta la imagen 'plantilla.png'")
-    return errores
-
-errores_archivos = verificar_archivos()
-if errores_archivos:
-    for e in errores_archivos: st.error(e)
-    st.stop()
-
-# --- CARGA DE DATOS ---
 @st.cache_data
 def cargar_datos():
-    df = pd.read_excel("asistentes.xlsx", dtype={'DNI': str})
-    df['DNI'] = df['DNI'].str.strip()
-    df['Nombre'] = df['Nombre'].str.strip()
-    return df
+    try:
+        df = pd.read_excel("asistentes.xlsx", dtype={'DNI': str})
+        return df
+    except:
+        return None
 
 df = cargar_datos()
 
-# --- PANEL DE CONTROL (ADMIN) ---
-st.sidebar.markdown("### 🔒 Administración")
-clave = st.sidebar.text_input("Contraseña", type="password")
+# --- PANEL DE CONTROL (SOLO PARA TI) ---
+st.sidebar.title("🛠 Ajuste de Plantilla")
+clave = st.sidebar.text_input("Contraseña Administrador", type="password")
 
-# Ajustes de diseño
-if clave == "admin2026": # Puedes cambiar esta clave
-    st.sidebar.success("Modo Edición")
-    txt_x = st.sidebar.slider("X Texto", 0, 5000, 2351)
-    txt_y = st.sidebar.slider("Y Texto", 0, 5000, 850)
-    txt_size = st.sidebar.slider("Tamaño Fuente", 10, 200, 95)
+if clave == "admin2026":
+    st.sidebar.success("Modo Edición Activado")
+    
+    st.sidebar.subheader("Posición Nombre y DNI")
+    txt_x = st.sidebar.slider("Horizontal (X)", 0, 5000, 2350, step=10)
+    txt_y = st.sidebar.slider("Vertical (Y)", 0, 5000, 850, step=10)
+    txt_size = st.sidebar.slider("Tamaño Letra", 10, 200, 90)
     txt_font = st.sidebar.selectbox("Fuente", ["Helvetica-Bold", "Times-Bold", "Courier-Bold"])
-    qr_x = st.sidebar.slider("X QR", 0, 5000, 4200)
-    qr_y = st.sidebar.slider("Y QR", 0, 5000, 2800)
-    qr_size = st.sidebar.slider("Tamaño QR", 100, 1000, 350)
+
+    st.sidebar.subheader("Posición Código QR")
+    qr_x = st.sidebar.slider("Horizontal QR", 0, 5000, 4200, step=10)
+    qr_y = st.sidebar.slider("Vertical QR", 0, 5000, 2800, step=10)
+    qr_size = st.sidebar.slider("Tamaño del QR", 100, 800, 350)
+    
+    mostrar_previa = True
 else:
-    # Valores por defecto cuando no eres admin
-    txt_x, txt_y, txt_size, txt_font = 2351, 850, 95, "Helvetica-Bold"
+    # Estos valores se guardan solos cuando dejas de ser admin
+    txt_x, txt_y, txt_size, txt_font = 2350, 850, 90, "Helvetica-Bold"
     qr_x, qr_y, qr_size = 4200, 2800, 350
+    mostrar_previa = False
 
-LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
+# --- FUNCIÓN DE VISTA PREVIA (IMAGEN) ---
+def generar_vista_previa(nombre, dni):
+    img = Image.open("plantilla.png").convert("RGB")
+    ancho, alto = img.size
+    draw = ImageDraw.Draw(img)
+    
+    # Simular texto (usamos fuente por defecto para la previa rápida)
+    try:
+        # Intentar cargar una fuente, si no usar la básica
+        fnt = ImageFont.truetype("arial.ttf", txt_size)
+    except:
+        fnt = ImageFont.load_default()
+        
+    texto = f"{nombre.upper()} - DNI: {dni}"
+    draw.text((txt_x, txt_y), texto, font=fnt, fill=(0,0,0), anchor="mm")
+    
+    # Simular QR (cuadrado negro)
+    draw.rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], fill="black")
+    
+    img.thumbnail((1000, 1000)) # Achicar para que cargue rápido
+    return img
 
-# --- GENERACIÓN DE PDF ---
+# --- FUNCIÓN PDF ---
 def generar_pdf(nombre, dni):
-    url_v = f"{LINK_APP}?validar={dni}"
-    qr = qrcode.make(url_v)
-    qr_buf = io.BytesIO()
-    qr.save(qr_buf, format='PNG')
-    qr_buf.seek(0)
-
     buffer = io.BytesIO()
     plantilla = Image.open("plantilla.png")
     ancho, alto = plantilla.size
-    
     c = canvas.Canvas(buffer, pagesize=(ancho, alto))
     c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
     
@@ -93,45 +89,35 @@ def generar_pdf(nombre, dni):
     c.drawCentredString(txt_x, alto - txt_y, f"{nombre.upper()} - DNI: {dni}")
     
     # QR
-    c.drawImage(ImageReader(qr_buf), qr_x, alto - qr_y, width=qr_size, height=qr_size)
+    url_v = f"https://tu-app.streamlit.app/?validar={dni}"
+    qr = qrcode.make(url_v)
+    qr_buf = io.BytesIO()
+    qr.save(qr_buf, format='PNG')
+    qr_buf.seek(0)
+    c.drawImage(ImageReader(qr_buf), qr_x, alto - (qr_y + qr_size), width=qr_size, height=qr_size)
     
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer
 
-# --- LÓGICA DE PANTALLAS ---
-query = st.query_params
-
-if query.get("validar"):
-    dni_v = query.get("validar")
-    doc = df[df['DNI'] == dni_v]
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    if not doc.empty:
-        st.markdown(f"""
-            <div style="text-align: center; border: 1px solid #eee; padding: 50px; border-radius: 4px;">
-                <p style="text-transform: uppercase; letter-spacing: 3px; color: #999; font-size: 10px;">Verificación Oficial</p>
-                <h2 style="color: #2c5e2e; font-weight: 300;">✓ Documento Válido</h2>
-                <h1 style="font-weight: 600; font-size: 28px; color: #1a1a1a;">{doc.iloc[0]['Nombre']}</h1>
-                <p style="color: #666;">DNI {dni_v}</p>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.error("Documento no registrado.")
-    st.stop()
-
-# PANTALLA PRINCIPAL
-st.markdown("<br><br><br>", unsafe_allow_html=True)
+# --- INTERFAZ DOCENTE ---
 st.markdown("<h2 style='text-align: center; font-weight: 300;'>Portal de Certificación</h2>", unsafe_allow_html=True)
 
-dni_input = st.text_input("DNI", label_visibility="collapsed", placeholder="Ingrese su número de DNI")
+# Si eres admin, te muestra la previa para que ubiques los elementos
+if mostrar_previa:
+    st.info("💡 Mueve los sliders de la izquierda para ubicar el Nombre y el QR. Esta vista es solo para ti.")
+    img_v = generar_vista_previa("JUAN PEREZ", "12345678")
+    st.image(img_v, caption="Previsualización de diseño")
 
-if dni_input:
-    res = df[df['DNI'] == dni_input]
+dni_input = st.text_input("Ingrese su DNI", placeholder="Ej: 12345678")
+
+if dni_input and df is not None:
+    res = df[df['DNI'].astype(str) == dni_input]
     if not res.empty:
         nombre_doc = res.iloc[0]['Nombre']
-        st.info(f"Certificado para: {nombre_doc}")
-        pdf_file = generar_pdf(nombre_doc, dni_input)
-        st.download_button("DESCARGAR PDF", data=pdf_file, file_name=f"Certificado_{dni_input}.pdf", mime="application/pdf")
+        st.success(f"Certificado listo para {nombre_doc}")
+        pdf = generar_pdf(nombre_doc, dni_input)
+        st.download_button("⬇️ DESCARGAR CERTIFICADO PDF", data=pdf, file_name=f"Certificado_{dni_input}.pdf")
     else:
-        st.error("DNI no registrado.")
+        st.error("DNI no encontrado.")
