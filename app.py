@@ -10,7 +10,7 @@ from reportlab.lib.utils import ImageReader
 # ----------------------------------------------------------------
 X_TEXTO = 200     # Centro de la hoja (Horizontal)
 Y_TEXTO =  100      # Altura desde arriba (Vertical)
-TAMANO_LETRA = 90
+TAMANO_LETRA = 20
 
 X_QR = 400        # Posición derecha
 Y_QR = 600        # Posición abajo
@@ -78,5 +78,6 @@ if dni_input and df is not None:
         st.download_button("⬇️ DESCARGAR PDF", data=pdf, file_name=f"Certificado_{dni_input}.pdf")
     else:
         st.error("DNI no registrado.")
+
 
 
