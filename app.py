@@ -7,7 +7,7 @@ from reportlab.lib.utils import ImageReader
 import io
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Certificados Oficiales", page_icon="🎓")
+st.set_page_config(page_title="Validador de Certificados", page_icon="🎓")
 
 @st.cache_data
 def cargar_datos():
@@ -22,16 +22,15 @@ def cargar_datos():
 
 df = cargar_datos()
 
-# --- COORDENADAS Y ESTILO ---
-# Ajustamos Y a un valor más alto para que suba a la primera cuarta parte
-# Ajustamos X para que el conjunto nombre + dni quede estético
-Y_SUPERIOR = 2200  # Ajusta este valor si queda muy arriba o muy abajo
+# --- CONSTANTES DE DISEÑO ---
+# Ajusta este link por el tuyo real de Streamlit
+LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
 TAMANO_FUENTE = 90
 
 # --- FUNCIÓN GENERAR PDF ---
 def generar_pdf(nombre, dni):
-    link_web = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
-    url_validacion = f"{link_web}?dni_verificar={dni}"
+    # El QR ahora lleva un parámetro especial '?validar='
+    url_validacion = f"{LINK_APP}?validar={dni}"
     
     qr = qrcode.make(url_validacion)
     qr_img = io.BytesIO()
@@ -42,72 +41,74 @@ def generar_pdf(nombre, dni):
     plantilla = Image.open("plantilla.png")
     ancho, alto = plantilla.size
     
-    # En ReportLab, la coordenada Y=0 es el borde INFERIOR. 
-    # Para la cuarta parte superior de una imagen de alto ~3500, usamos ~2600.
+    # Posición Y (cuarta parte superior en PDF)
     pos_y_pdf = alto * 0.75 
 
     c = canvas.Canvas(buffer, pagesize=(ancho, alto))
     c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
     
-    # Texto en el mismo renglón y mismo formato
+    # Texto en el mismo renglón
     texto_completo = f"{nombre.upper()} - DNI: {dni}"
-    
     c.setFont("Helvetica-Bold", TAMANO_FUENTE)
     c.drawCentredString(ancho / 2, pos_y_pdf, texto_completo)
     
-    # Dibujar QR pequeño abajo
-    c.drawImage(ImageReader(qr_img), ancho - 500, 100, width=300, height=300)
+    # QR de Validación
+    c.drawImage(ImageReader(qr_img), ancho - 550, 150, width=350, height=350)
+    c.setFont("Helvetica", 40)
+    c.drawString(ancho - 550, 100, "Escanee para validar")
     
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer
 
-# --- FUNCIÓN VISTA PREVIA ---
-def generar_previsualizacion(nombre, dni):
-    img = Image.open("plantilla.png").convert("RGB")
-    ancho, alto = img.size
-    draw = ImageDraw.Draw(img)
-    
-    try:
-        font = ImageFont.truetype("arial.ttf", TAMANO_FUENTE)
-    except:
-        font = ImageFont.load_default()
-    
-    # En PIL (imagen), Y=0 es ARRIBA. La cuarta parte superior es alto * 0.25
-    pos_y_img = alto * 0.25
-    
-    texto_completo = f"{nombre.upper()} - DNI: {dni}"
-    
-    # Centrar texto
-    draw.text((ancho / 2, pos_y_img), texto_completo, font=font, fill=(0,0,0), anchor="mm")
-    
-    img.thumbnail((1000, 1000)) 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+# --- LÓGICA DE LA APLICACIÓN ---
 
-# --- INTERFAZ ---
-st.title("🎓 Generador de Certificados")
+# 1. VERIFICAR SI VIENE DESDE EL QR
+query_params = st.query_params
+dni_a_validar = query_params.get("validar")
 
-dni_input = st.text_input("Ingresa tu DNI:")
+if dni_a_validar:
+    # Si existe este parámetro, mostramos SOLO la validación
+    st.title("🔍 Validación de Certificado")
+    if df is not None:
+        docente = df[df['DNI'] == dni_a_validar]
+        if not docente.empty:
+            st.success("### ✅ CERTIFICADO AUTÉNTICO")
+            st.balloons()
+            st.write(f"**Nombre del titular:** {docente.iloc[0]['Nombre']}")
+            st.write(f"**Documento:** {dni_a_validar}")
+            st.write("**Estado:** Registrado en la base de datos oficial.")
+        else:
+            st.error("### ❌ CERTIFICADO NO VÁLIDO")
+            st.write("El documento escaneado no coincide con nuestros registros oficiales.")
+    
+    if st.button("Ir al sitio de descargas"):
+        st.query_params.clear()
+        st.rerun()
+    st.stop() # Detiene la ejecución para que no se vea el formulario de abajo
+
+# 2. INTERFAZ NORMAL DE DESCARGA
+st.title("🎓 Descarga de Certificados")
+st.write("Ingrese su DNI para obtener su certificado oficial.")
+
+dni_input = st.text_input("DNI:")
 
 if dni_input and df is not None:
     res = df[df['DNI'] == dni_input]
     if not res.empty:
         nombre = res.iloc[0]['Nombre']
         
-        # Vista previa
-        img_preview = generar_previsualizacion(nombre, dni_input)
-        st.image(img_preview, caption="Vista previa del renglón superior", use_container_width=True)
+        # Vista previa rápida (opcional, puedes quitarla si prefieres solo el botón)
+        st.info(f"Certificado encontrado para: {nombre}")
         
-        # Descarga
+        # Botón de descarga
         pdf_file = generar_pdf(nombre, dni_input)
         st.download_button(
-            label="⬇️ Descargar PDF Oficial",
+            label="⬇️ Descargar PDF con QR de Validación",
             data=pdf_file,
             file_name=f"Certificado_{dni_input}.pdf",
             mime="application/pdf"
         )
     else:
-        st.error("DNI no encontrado.")
+        st.error("El DNI no se encuentra en la lista.")
