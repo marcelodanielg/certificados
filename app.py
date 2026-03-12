@@ -1,74 +1,27 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
+import qrcode
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape
+from reportlab.lib.utils import ImageReader
 import io
 import os
 
-# Configuración de la página
-st.set_page_config(page_title="Generador de Certificados", page_icon="🎓")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="Sistema de Certificación Oficial", page_icon="🎓", layout="wide")
 
-# Estilo para mejorar la apariencia
+# --- ESTILOS ---
 st.markdown("""
     <style>
-    .main {
-        background-color: #f5f5f5;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #007bff;
-        color: white;
-    }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #f0f2f6; border-radius: 5px; padding: 10px; }
+    .stTabs [aria-selected="true"] { background-color: #007bff; color: white; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-st.title("🎓 Descarga tu Certificado")
-st.write("Ingresa tu DNI para obtener tu certificado personalizado.")
-
-# --- FUNCIÓN DE GENERACIÓN ---
-def generar_certificado(nombre_texto, dni_texto):
-    # 1. Abrir la plantilla y forzar modo RGB
-    try:
-        img = Image.open("plantilla.png").convert("RGB")
-    except Exception as e:
-        st.error(f"Error: No se encontró 'plantilla.png' en el repositorio. {e}")
-        return None
-
-    draw = ImageDraw.Draw(img)
-
-    # 2. Configurar fuentes
-    # Intentamos cargar arial.ttf desde la carpeta raíz del repo
-    font_path = "./arial.ttf"
-    
-    try:
-        # Aumentamos tamaño a 200/250 para que sea visible en altas resoluciones
-        if os.path.exists(font_path):
-            font_nombre = ImageFont.truetype(font_path, 250) 
-            font_dni = ImageFont.truetype(font_path, 120)
-        else:
-            st.warning("Archivo arial.ttf no detectado, usando fuente básica.")
-            font_nombre = font_dni = ImageFont.load_default()
-    except:
-        font_nombre = font_dni = ImageFont.load_default()
-
-    # 3. UBICACIONES (Basadas en tus coordenadas)
-    # 'mm' significa que el centro del texto estará en esa coordenada (mejor para centrar nombres)
-    pos_nombre = (2351, 1575)
-    pos_dni = (5203, 1575)
-
-    # 4. Dibujar los textos
-    # Color negro: (0, 0, 0). Si no se ve, prueba (255, 0, 0) para rojo de prueba.
-    draw.text(pos_nombre, str(nombre_texto), font=font_nombre, fill=(0, 0, 0), anchor="mm")
-    draw.text(pos_dni, str(dni_texto), font=font_dni, fill=(0, 0, 0), anchor="mm")
-
-    # 5. Convertir a bytes para descarga
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
-
-# --- LÓGICA DE BÚSQUEDA ---
-@st.cache_data # Para que no recargue el Excel en cada clic
+# --- CARGA DE DATOS ---
+@st.cache_data
 def cargar_datos():
     try:
         df = pd.read_excel("asistentes.xlsx", dtype={'DNI': str})
@@ -76,44 +29,104 @@ def cargar_datos():
         df['Nombre'] = df['Nombre'].str.strip()
         return df
     except Exception as e:
-        st.error(f"Error al cargar el archivo Excel: {e}")
+        st.error(f"Error al cargar Excel: {e}")
         return None
 
 df = cargar_datos()
 
-if df is not None:
-    # Interfaz de usuario
-    dni_usuario = st.text_input("Escribe tu DNI (sin puntos ni espacios):")
+# --- FUNCIÓN GENERAR PDF CON QR ---
+def generar_pdf_certificado(nombre, dni):
+    # 1. Crear el QR de validación (URL de tu app + DNI)
+    # Reemplaza la URL de abajo por la URL real de tu app en Streamlit Cloud
+    url_validacion = f"https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/?dni_verificar={dni}"
+    qr = qrcode.make(url_validacion)
+    qr_img = io.BytesIO()
+    qr.save(qr_img, format='PNG')
+    qr_img.seek(0)
 
-    if dni_usuario:
-        # Buscar en el DataFrame
-        datos = df[df['DNI'] == dni_usuario]
-        
-        if not datos.empty:
-            nombre_asistente = datos.iloc[0]['Nombre']
-            dni_asistente = datos.iloc[0]['DNI']
+    # 2. Configurar el lienzo PDF (Basado en tamaño de imagen original)
+    buffer = io.BytesIO()
+    plantilla = Image.open("plantilla.png")
+    ancho, alto = plantilla.size
+    
+    c = canvas.Canvas(buffer, pagesize=(ancho, alto))
+    
+    # 3. Dibujar Plantilla de Fondo
+    c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
+    
+    # 4. Configurar Fuentes y Escribir (Ajusta coordenadas según tu plantilla)
+    # Intentamos cargar Arial, si no usamos Helvetica (estándar en PDF)
+    try:
+        c.setFont("Helvetica-Bold", 120) 
+    except:
+        c.setFont("Helvetica", 100)
+
+    # Nombre (Centrado en X=2351, Y=1575)
+    c.drawCentredString(2351, 1575, nombre.upper())
+    
+    # DNI
+    c.setFont("Helvetica", 80)
+    c.drawCentredString(4803, 1575, f"DNI: {dni}")
+
+    # 5. Dibujar Código QR en una esquina (ejemplo: abajo a la derecha)
+    c.drawImage(ImageReader(qr_img), ancho - 500, 100, width=350, height=350)
+    
+    # Texto de ayuda bajo el QR
+    c.setFont("Helvetica", 40)
+    c.drawString(ancho - 500, 50, "Escanee para validar autenticidad")
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFAZ DE USUARIO ---
+st.title("🎓 Portal de Certificaciones Docentes")
+
+tab1, tab2 = st.tabs(["📥 Descargar mi Certificado", "🔍 Verificar Autenticidad"])
+
+with tab1:
+    st.header("Obtén tu comprobante oficial")
+    dni_input = st.text_input("Ingresa tu DNI para buscar:", key="descarga")
+    
+    if dni_input and df is not None:
+        resultado = df[df['DNI'] == dni_input]
+        if not resultado.empty:
+            nombre = resultado.iloc[0]['Nombre']
+            st.success(f"Certificado localizado: **{nombre}**")
             
-            st.success(f"✅ ¡Hola {nombre_asistente}! Tu certificado está listo.")
-            
-            # Generar imagen
-            archivo_cert = generar_certificado(nombre_asistente, dni_asistente)
-            
-            if archivo_cert:
-                # Mostrar vista previa
-                st.image(archivo_cert, caption="Vista previa de tu certificado", use_container_width=True)
+            with st.spinner("Generando PDF oficial..."):
+                pdf_file = generar_pdf_certificado(nombre, dni_input)
                 
-                # Botón de descarga
-                st.download_button(
-                    label="⬇️ Descargar Certificado (PNG)",
-                    data=archivo_cert,
-                    file_name=f"Certificado_{dni_asistente}.png",
-                    mime="image/png"
-                )
+            st.download_button(
+                label="⬇️ Descargar Certificado en PDF",
+                data=pdf_file,
+                file_name=f"Certificado_{dni_input}.pdf",
+                mime="application/pdf"
+            )
         else:
-            st.error("❌ El DNI ingresado no se encuentra en nuestra lista.")
-else:
-    st.info("Esperando base de datos...")
+            st.error("El DNI no figura en nuestra base de datos de aprobados.")
+
+with tab2:
+    st.header("Validador de Títulos")
+    st.write("Cualquier institución puede verificar la validez de un certificado aquí.")
+    
+    # Soporte para validación automática vía QR
+    query_params = st.query_params
+    dni_auto = query_params.get("dni_verificar", "")
+    
+    dni_verificar = st.text_input("Ingrese el DNI a verificar:", value=dni_auto, key="verif")
+    
+    if dni_verificar and df is not None:
+        verif_res = df[df['DNI'] == dni_verificar]
+        if not verif_res.empty:
+            st.balloons()
+            st.success(f"✅ **CERTIFICADO AUTÉNTICO**")
+            st.write(f"**Alumno:** {verif_res.iloc[0]['Nombre']}")
+            st.write(f"**Estado:** Aprobado / Asistencia Confirmada")
+            st.write(f"**Institución:** [Tu Nombre de Institución]")
+        else:
+            st.error("❌ El certificado no es válido o el DNI no existe en los registros oficiales.")
 
 st.divider()
-st.caption("Sistema de certificación automática - Generado con Streamlit")
-
+st.caption("Sistema Seguro de Certificación - 2026")
