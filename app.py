@@ -6,8 +6,36 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 import io
 
-# --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Invitaciòn al Encuentro Formativo Secundarias Innovadoras", page_icon="🎓")
+# --- CONFIGURACIÓN DE ESTÉTICA ---
+st.set_page_config(page_title="Sistema Oficial de Certificación", page_icon="🎓", layout="centered")
+
+# CSS para eliminar marcas de Streamlit y aplicar un estilo sobrio
+style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stApp {
+        background-color: #ffffff;
+    }
+    .stButton>button {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border-radius: 4px;
+        border: none;
+        padding: 0.5rem 2rem;
+        font-weight: 300;
+    }
+    .stButton>button:hover {
+        background-color: #333333;
+        color: #ffffff;
+    }
+    input {
+        border-radius: 4px !important;
+    }
+    </style>
+    """
+st.markdown(style, unsafe_allow_html=True)
 
 @st.cache_data
 def cargar_datos():
@@ -16,28 +44,30 @@ def cargar_datos():
         df['DNI'] = df['DNI'].str.strip()
         df['Nombre'] = df['Nombre'].str.strip()
         return df
-    except Exception as e:
-        st.error(f"Error al cargar Excel")
+    except:
         return None
 
-# =========================================================
-# ⚙️ CONFIGURACIÓN DEL ADMINISTRADOR (Solo tú editas esto)
-# =========================================================
-# 1. Ejecuta la app con los sliders una vez, busca los números y luego ponlos aquí:
-LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
-
-# Coordenadas para Nombre y DNI (Mismo renglón)
-TXT_X = 460   # Centro horizontal
-TXT_Y = 216    # Altura desde arriba (Primera cuarta parte)
-TXT_SIZE = 20  # Tamaño de letra
-
-# Coordenadas para el Código QR
-QR_X = 800    # Posición horizontal del QR
-QR_Y = 600    # Posición vertical del QR (Cerca del borde inferior)
-QR_SIZE = 120  # Tamaño del cuadrado del QR
-# =========================================================
-
 df = cargar_datos()
+
+# --- PANEL DE CONTROL PRIVADO (Solo Admin) ---
+with st.sidebar:
+    st.markdown("### 🔐 Configuración")
+    pwd = st.text_input("Acceso", type="password")
+    
+    # Valores predeterminados (Edítalos aquí una vez configurados)
+    if pwd == "admin2026": 
+        st.success("Acceso concedido")
+        txt_x = st.slider("Eje X Texto", 0, 5000, 2351)
+        txt_y = st.slider("Eje Y Texto", 0, 5000, 850)
+        qr_x = st.slider("Eje X QR", 0, 5000, 4200)
+        qr_y = st.slider("Eje Y QR", 0, 5000, 2800)
+        txt_size = st.slider("Tamaño", 50, 200, 95)
+    else:
+        # Valores de producción
+        txt_x, txt_y, qr_x, qr_y, txt_size = 2351, 850, 4200, 2800, 95
+
+# --- LÓGICA DE GENERACIÓN ---
+LINK_APP = "https://certificados-9fnndcn82jqmyappo29hipd.streamlit.app/"
 
 def generar_pdf(nombre, dni):
     url = f"{LINK_APP}?validar={dni}"
@@ -52,58 +82,6 @@ def generar_pdf(nombre, dni):
     
     c = canvas.Canvas(buffer, pagesize=(ancho, alto))
     c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
-    
-    # Dibujar Texto (ReportLab mide desde abajo, por eso restamos)
-    c.setFont("Helvetica-Bold", TXT_SIZE)
-    c.drawCentredString(TXT_X, alto - TXT_Y, f"{nombre.upper()} - DNI: {dni}")
-    
-    # Dibujar QR
-    c.drawImage(ImageReader(qr_buf), QR_X, alto - QR_Y, width=QR_SIZE, height=QR_SIZE)
-    
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-# --- LÓGICA DE LA APP ---
-
-# MODO VALIDADOR (Para el QR)
-if st.query_params.get("validar"):
-    dni_v = st.query_params.get("validar")
-    st.title("🔍 Validación de Autenticidad")
-    if df is not None:
-        doc = df[df['DNI'] == dni_v]
-        if not doc.empty:
-            st.success(f"### ✅ CERTIFICADO VÁLIDO\n**Titular:** {doc.iloc[0]['Nombre']}")
-            st.balloons()
-        else:
-            st.error("### ❌ CERTIFICADO NO ENCONTRADO")
-    st.stop()
-
-# MODO USUARIO (Lo que ven los alumnos)
-st.title("🎓 Descarga de Certificados")
-st.write("Ingrese su DNI para obtener el documento oficial.")
-
-dni_input = st.text_input("DNI:")
-
-if dni_input and df is not None:
-    res = df[df['DNI'] == dni_input]
-    if not res.empty:
-        nombre_doc = res.iloc[0]['Nombre']
-        st.info(f"Certificado listo para: {nombre_doc}")
-        
-        pdf_file = generar_pdf(nombre_doc, dni_input)
-        
-        st.download_button(
-            label="⬇️ Descargar Certificado (PDF)",
-            data=pdf_file,
-            file_name=f"Certificado_{dni_input}.pdf",
-            mime="application/pdf"
-        )
-    else:
-        st.error("DNI no encontrado.")
-
-
-
-
-
+    c.setFont("Helvetica-Bold", txt_size)
+    c.drawCentredString(txt_x, alto - txt_y, f"{nombre.upper()} - DNI: {dni}")
+    c.drawImage(ImageReader(qr_buf),
