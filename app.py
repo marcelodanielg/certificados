@@ -62,11 +62,11 @@ def generar_pdf_certificado(nombre, dni):
         c.setFont("Helvetica", 100)
 
     # Nombre (Centrado en X=2351, Y=1575)
-    c.drawCentredString(2351, 1575, nombre.upper())
+    c.drawCentredString(2351, 575, nombre.upper())
     
     # DNI
-    c.setFont("Helvetica", 80)
-    c.drawCentredString(4803, 1575, f"DNI: {dni}")
+     # c.setFont("Helvetica", 100)
+    c.drawCentredString(4803, 575, f"DNI: {dni}")
 
     # 5. Dibujar Código QR en una esquina (ejemplo: abajo a la derecha)
     c.drawImage(ImageReader(qr_img), ancho - 500, 100, width=350, height=350)
@@ -81,7 +81,7 @@ def generar_pdf_certificado(nombre, dni):
     return buffer
 
 # --- INTERFAZ DE USUARIO ---
-st.title("🎓 Portal de Certificaciones Docentes")
+st.title("🎓 Jornada dia 26 de Marzo")
 
 tab1, tab2 = st.tabs(["📥 Descargar mi Certificado", "🔍 Verificar Autenticidad"])
 
@@ -130,3 +130,4 @@ with tab2:
 
 st.divider()
 st.caption("Sistema Seguro de Certificación - 2026")
+
