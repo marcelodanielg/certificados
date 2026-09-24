@@ -148,7 +148,7 @@ st.markdown(
     """
     <div class='compact-header'>
         <h1>📜 Constancias de Asistencia</h1>
-        <p>Ingrese su DNI para obtener sus certificados</p>
+        <p>Ingrese su DNI para obtener sus constancias de asistencia</p>
     </div>
     """,
     unsafe_allow_html=True,
