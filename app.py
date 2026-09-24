@@ -15,60 +15,71 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. DISEÑO ULTRALIVIANO PARA MÁXIMA VELOCIDAD EN MÓVIL ---
+# --- 2. DISEÑO COMPACTO Y VERSÁTIL (IDEAL CELULAR Y PC) ---
 st.markdown(
     """
     <style>
-    #MainMenu, footer, header, .stDeployButton, #stDecoration { display: none !important; }
+    #MainMenu, footer, header { display: none !important; }
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 700px !important;
+        padding-top: 0.8rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        max-width: 600px !important;
     }
     .stApp { background-color: #f8fafc; }
 
-    .header-container {
+    /* Encabezado ultra compacto */
+    .compact-header {
         text-align: center;
-        padding: 15px;
-        margin-bottom: 12px;
+        padding: 10px;
         background: linear-gradient(135deg, #1b4965 0%, #2b5876 100%);
-        border-radius: 10px;
         color: white;
+        border-radius: 8px;
+        margin-bottom: 10px;
     }
-    .header-container h1 { margin: 0; font-size: 22px; font-weight: 700; }
-    .header-container p { margin: 4px 0 0 0; font-size: 12px; opacity: 0.9; }
+    .compact-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    .compact-header p { margin: 2px 0 0 0; font-size: 11px; opacity: 0.9; }
 
-    .tarjeta-bienvenida {
-        background-color: #ffffff; border-radius: 8px; padding: 12px 15px;
-        border: 1px solid #e2e8f0; margin-bottom: 12px; font-size: 13px; color: #334155;
-    }
-    .pasos-lista { margin: 4px 0 0 0; padding-left: 18px; font-size: 12px; line-height: 1.3; }
-
+    /* Formulario minimalista */
     div[data-testid="stForm"] {
-        background-color: #ffffff; padding: 15px; border-radius: 10px;
-        border: 2px solid #1b4965; margin-bottom: 12px;
+        background-color: #ffffff;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        margin-bottom: 10px;
     }
-    div[data-testid="stForm"] label { font-size: 14px !important; font-weight: bold !important; color: #1b4965 !important; }
-    div[data-testid="stForm"] input { font-size: 16px !important; padding: 8px !important; }
+    div[data-testid="stForm"] label { font-size: 12px !important; font-weight: bold !important; color: #1b4965 !important; }
 
-    .tarjeta-evento {
-        background-color: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #1b4965;
-        border-radius: 8px; padding: 12px; margin-bottom: 10px; font-size: 13px; color: #1e293b;
+    /* Tarjetas de eventos encontrados compactas */
+    .tarjeta-resultado {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #1b4965;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #1e293b;
     }
 
-    .stButton>button, .stDownloadButton>button {
-        background-color: #1b4965 !important; color: #ffffff !important;
-        font-size: 15px !important; font-weight: 700 !important; padding: 10px !important;
-        border-radius: 6px !important; border: none !important; width: 100% !important;
+    /* Botones de descarga rápidos */
+    .stDownloadButton>button {
+        background-color: #1b4965 !important;
+        color: #ffffff !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 6px 10px !important;
+        border-radius: 6px !important;
+        border: none !important;
+        width: 100% !important;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# --- 3. CARGA GLOBAL Y CENTRALIZADA ---
+# --- 3. CARGA GLOBAL DE EVENTOS ---
 @st.cache_data(ttl=3600)
 def cargar_todos_los_eventos():
     directorio_eventos = "eventos"
@@ -132,101 +143,84 @@ def generar_pdf(nombre, dni, path_plantilla):
     return buffer
 
 
-# --- 4. INTERFAZ DE USUARIO ---
+# --- 4. INTERFAZ DE USUARIO COMPACTA ---
 st.markdown(
     """
-    <div class='header-container'>
+    <div class='compact-header'>
         <h1>📜 Constancias de Asistencia</h1>
-        <p>Sistema de Descarga Rápida</p>
+        <p>Ingrese su DNI para obtener sus certificados</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-if eventos_disponibles:
-    st.markdown(
-        """
-        <div class='tarjeta-bienvenida'>
-            <b>Instrucciones:</b>
-            <ol class='pasos-lista'>
-                <li>Ingrese su número de <b>DNI</b> sin puntos ni espacios.</li>
-                <li>Seleccione las constancias que desea descargar o marque todas juntas.</li>
-            </ol>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+# Inicializar estados de memoria para evitar que se borren los resultados
+if "resultados" not in st.session_state:
+    st.session_state.resultados = None
+if "dni_buscado" not in st.session_state:
+    st.session_state.dni_buscado = ""
 
-    with st.form(key="form_dni_global"):
-        dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 25123456")
-        submit_button = st.form_submit_button(label="🔍 Buscar Mis Constancias", use_container_width=True)
+if eventos_disponibles:
+    # Formulario compacto de una sola línea horizontal
+    with st.form(key="form_dni_compacto"):
+        col_input, col_btn = st.columns([3, 1])
+        with col_input:
+            dni_input = st.text_input("DNI (sin puntos):", placeholder="Ej: 25123456", label_visibility="collapsed")
+        with col_btn:
+            submit_button = st.form_submit_button(label="🔍 Buscar", use_container_width=True)
 
     if submit_button and dni_input:
         dni_limpio = "".join(filter(str.isdigit, dni_input))
+        st.session_state.dni_buscado = dni_limpio
         encontrados = []
 
         for ev in eventos_disponibles:
             df_temp = ev["df"]
             res = df_temp[df_temp["DNI"] == dni_limpio]
             if not res.empty:
-                nombre_doc = res.iloc[0]["Nombre"]
                 encontrados.append({
                     "evento": ev["evento"],
-                    "nombre": nombre_doc,
+                    "nombre": res.iloc[0]["Nombre"],
                     "path_plantilla": ev["path_plantilla"]
                 })
+        st.session_state.resultados = encontrados
 
+    # Mostrar resultados almacenados (Garantiza que funcione perfecto en celulares)
+    if st.session_state.resultados is not None:
+        encontrados = st.session_state.resultados
+        
         if encontrados:
-            st.success(f"¡Se encontraron **{len(encontrados)}** constancia(s) para el DNI {dni_limpio}!")
+            st.success(f"Se encontraron **{len(encontrados)}** constancia(s) para el DNI {st.session_state.dni_buscado}:")
             
-            # Opción para tildar/seleccionar qué eventos descargar
-            st.markdown("### Seleccione las constancias a descargar:")
-            
-            seleccionados = {}
-            # Casilla para marcar/desmarcar todos de entrada
-            marcar_todos = st.checkbox("☑️ Seleccionar / Deseleccionar Todos", value=True)
-
-            st.markdown("---")
-
             for item in encontrados:
                 fecha_evento = item["evento"]
                 nombre_doc = item["nombre"]
-                
-                # Checkbox individual para cada evento
-                seleccionados[fecha_evento] = st.checkbox(
-                    f"📅 Evento: {fecha_evento} (Docente: {nombre_doc})", 
-                    value=marcar_todos,
-                    key=f"chk_{fecha_evento}"
-                )
+                path_plantilla = item["path_plantilla"]
 
-            st.markdown("---")
+                # Generar PDF en memoria de forma ultrarrápida
+                pdf_data = generar_pdf(nombre_doc, st.session_state.dni_buscado, path_plantilla)
 
-            # Botón único para procesar y descargar las seleccionadas
-            if st.button("📥 DESCARGAR CONSTANCIAS SELECCIONADAS", use_container_width=True):
-                alguna_seleccionada = False
-                
-                for item in encontrados:
-                    fecha_evento = item["evento"]
-                    if seleccionados.get(fecha_evento, False):
-                        alguna_seleccionada = True
-                        nombre_doc = item["nombre"]
-                        path_plantilla = item["path_plantilla"]
-                        
-                        pdf_data = generar_pdf(nombre_doc, dni_limpio, path_plantilla)
-                        
-                        # Generar botones de descarga dinámicos instantáneos
-                        st.download_button(
-                            label=f"📥 Descargar PDF: {fecha_evento}",
-                            data=pdf_data,
-                            file_name=f"Constancia_{dni_limpio}_{fecha_evento}.pdf",
-                            mime="application/pdf",
-                            key=f"dl_{fecha_evento}"
-                        )
-                
-                if not alguna_seleccionada:
-                    st.warning("⚠️ Debe tildar al menos una constancia para descargar.")
-
+                # Diseño en filas compactas (Información a la izquierda, Botón a la derecha)
+                c_info, c_down = st.columns([2, 1])
+                with c_info:
+                    st.markdown(
+                        f"""
+                        <div class='tarjeta-resultado'>
+                            <b>📅 Evento:</b> {fecha_evento}<br>
+                            <b>👤 Docente:</b> {nombre_doc}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with c_down:
+                    st.download_button(
+                        label="📥 Descargar",
+                        data=pdf_data,
+                        file_name=f"Constancia_{st.session_state.dni_buscado}_{fecha_evento}.pdf",
+                        mime="application/pdf",
+                        key=f"dl_{fecha_evento}"
+                    )
         else:
-            st.error("El DNI ingresado no se encuentra registrado en ninguna de las nóminas.")
+            st.error("El DNI ingresado no figura en las nóminas.")
 else:
-    st.warning("⚠️ No se detectaron carpetas de eventos en la carpeta 'eventos/'.")
+    st.warning("⚠️ No hay carpetas de eventos configuradas en el repositorio.")
