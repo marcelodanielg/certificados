@@ -147,8 +147,9 @@ def generar_pdf(nombre, dni, path_plantilla):
 st.markdown(
     """
     <div class='compact-header'>
+    <p>Inteligencia Artificial Generativa y Educación</p>
         <h1>📜 Constancias de Asistencia</h1>
-        <p>Ingrese su DNI para obtener sus constancias de asistencia</p>
+        <p>Ingrese su DNI</p>
     </div>
     """,
     unsafe_allow_html=True,
