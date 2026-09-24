@@ -17,55 +17,110 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. CSS RESPONSIVE Y ESTILOS DESTACADOS ---
+# --- 2. DISEÑO RESPONSIVO PROFESIONAL (PC Y MÓVIL) ---
 st.markdown(
     """
     <style>
+    /* Ocultar elementos de Streamlit */
     #MainMenu, footer, header, .stDeployButton, #stDecoration { display: none !important; }
+    
+    /* Contenedor principal adaptable: Elegante en PC, completo en Celular */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        max-width: 100% !important;
+        max-width: 750px !important; /* Evita que se estire demasiado en monitores grandes */
     }
-    .stApp { background-color: #f4f6f9; }
+    
+    .stApp { background-color: #f0f2f5; }
+
+    /* Encabezado Principal */
     .header-container {
         text-align: center;
-        padding: 10px;
-        margin-bottom: 12px;
+        padding: 18px;
+        margin-bottom: 15px;
         background: linear-gradient(135deg, #1b4965 0%, #2b5876 100%);
-        border-radius: 8px;
+        border-radius: 12px;
         color: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     .header-container h1 {
-        margin: 0; font-size: 20px; font-weight: 700;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
         font-family: system-ui, -apple-system, sans-serif;
     }
-    .header-container p { margin: 2px 0 0 0; font-size: 12px; opacity: 0.9; }
+    .header-container p {
+        margin: 5px 0 0 0;
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
+    /* Tarjetas de instrucciones y resultados */
     .tarjeta-bienvenida {
-        background-color: #ffffff; border-radius: 8px; padding: 10px 14px;
-        border: 1px solid #e0e0e0; margin-bottom: 12px; font-size: 13px;
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 15px 20px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
-    .pasos-lista { margin: 4px 0 0 0; padding-left: 18px; color: #4a5568; font-size: 12px; line-height: 1.3; }
+    .pasos-lista {
+        margin: 5px 0 0 0;
+        padding-left: 20px;
+        color: #4a5568;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    /* Formulario limpio y moderno */
     div[data-testid="stForm"] {
-        background-color: #ffffff; padding: 12px; border-radius: 8px;
-        border: 2px solid #1b4965; margin-bottom: 12px;
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 12px;
+        border: 2px solid #1b4965;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.03);
     }
-    div[data-testid="stForm"] label { font-size: 14px !important; font-weight: bold !important; color: #1b4965 !important; }
-    div[data-testid="stForm"] input { font-size: 16px !important; padding: 8px !important; }
-    .tarjeta-info {
-        background-color: #ffffff; border-left: 4px solid #1b4965;
-        padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; color: #2c3e50; font-size: 13px;
+    div[data-testid="stForm"] label {
+        font-size: 15px !important;
+        font-weight: bold !important;
+        color: #1b4965 !important;
     }
+    div[data-testid="stForm"] input {
+        font-size: 16px !important;
+        padding: 10px !important;
+        border-radius: 6px !important;
+    }
+
+    /* Tarjeta de evento encontrado */
     .tarjeta-evento {
-        background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;
-        padding: 12px; margin-bottom: 12px; box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-left: 5px solid #1b4965;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
+
+    /* Botones destacados */
     .stButton>button, .stDownloadButton>button {
-        background-color: #1b4965 !important; color: #ffffff !important;
-        font-size: 15px !important; font-weight: 700 !important; padding: 10px !important;
-        border-radius: 6px !important; border: none !important; width: 100% !important;
+        background-color: #1b4965 !important;
+        color: #ffffff !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        width: 100% !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: background-color 0.2s;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #112d40 !important;
     }
     </style>
     """,
@@ -75,14 +130,13 @@ st.markdown(
 # --- 3. CARGA GLOBAL Y CENTRALIZADA DE TODOS LOS EVENTOS ---
 @st.cache_data(ttl=3600)
 def cargar_todos_los_eventos():
-    """Escanea la carpeta 'eventos' y consolida la información de fechas, excels y plantillas."""
+    """Escanea automáticamente la carpeta 'eventos' y consolida todas las fechas."""
     directorio_eventos = "eventos"
     registros_totales = []
 
     if not os.path.exists(directorio_eventos):
         return registros_totales
 
-    # Recorrer cada subcarpeta (que representa una fecha o evento)
     for nombre_carpeta in os.listdir(directorio_eventos):
         ruta_carpeta = os.path.join(directorio_eventos, nombre_carpeta)
         
@@ -95,7 +149,6 @@ def cargar_todos_los_eventos():
                     df = pd.read_excel(path_xlsx)
                     df.columns = df.columns.str.strip()
 
-                    # Limpieza estándar de columnas DNI y Nombre
                     if "Nombre" in df.columns and "DNI" in df.columns:
                         muestra_dni = df["DNI"].dropna().astype(str)
                         if muestra_dni.str.contains(r"[a-zA-ZñÑ]").any():
@@ -117,7 +170,7 @@ def cargar_todos_los_eventos():
                             "path_plantilla": path_plantilla
                         })
                 except Exception as e:
-                    print(f"Error leyendo el evento {nombre_carpeta}: {e}")
+                    print(f"Error procesando {nombre_carpeta}: {e}")
 
     return registros_totales
 
@@ -194,7 +247,7 @@ st.markdown(
     """
     <div class='header-container'>
         <h1>📜 Constancias de Asistencia</h1>
-        <p>Sistema Digital de Emisión de Comprobantes Históricos</p>
+        <p>Ministerio de Educación — Sistema de Emisión Digital</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -206,8 +259,8 @@ if eventos_disponibles:
         <div class='tarjeta-bienvenida'>
             <b>Instrucciones:</b>
             <ol class='pasos-lista'>
-                <li>Ingrese su DNI sin puntos ni espacios.</li>
-                <li>El sistema buscará automáticamente <b>todos los eventos</b> en los que figura registrado/a y le mostrará los botones de descarga correspondientes.</li>
+                <li>Ingrese su número de <b>DNI</b> sin puntos ni espacios.</li>
+                <li>El sistema buscará automáticamente en todas las capacitaciones y le mostrará sus constancias disponibles para descargar.</li>
             </ol>
         </div>
         """,
@@ -222,7 +275,6 @@ if eventos_disponibles:
         dni_limpio = "".join(filter(str.isdigit, dni_input))
         encontrados = []
 
-        # Buscar en cada evento cargado
         for ev in eventos_disponibles:
             df_temp = ev["df"]
             res = df_temp[df_temp["DNI"] == dni_limpio]
@@ -235,14 +287,13 @@ if eventos_disponibles:
                 })
 
         if encontrados:
-            st.success(f"¡Se encontraron **{len(encontrados)}** constancia(s) para el DNI {dni_limpio}!")
+            st.success(f"¡Se encontraron **{len(encontrados)}** constancia(s) asociada(s) al DNI {dni_limpio}!")
             
             for item in encontrados:
                 nombre_doc = item["nombre"]
                 fecha_evento = item["evento"]
                 path_plantilla = item["path_plantilla"]
 
-                # Generar archivos en tiempo de ejecución para cada evento encontrado
                 pdf_data = generar_pdf(nombre_doc, dni_limpio, path_plantilla)
                 img_prev = generar_imagen_previa(nombre_doc, dni_limpio, path_plantilla)
 
@@ -256,10 +307,8 @@ if eventos_disponibles:
                     unsafe_allow_html=True,
                 )
 
-                # Vista previa miniatura interactiva
                 mostrar_visor_interactivo(img_prev)
 
-                # Botón de descarga individual por evento
                 st.download_button(
                     label=f"📥 Descargar PDF ({fecha_evento})",
                     data=pdf_data,
@@ -267,7 +316,7 @@ if eventos_disponibles:
                     mime="application/pdf",
                     key=f"btn_{fecha_evento}"
                 )
-                st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
 
         else:
             st.error("El DNI ingresado no se encuentra registrado en ninguna de las nóminas de asistencia disponibles.")
